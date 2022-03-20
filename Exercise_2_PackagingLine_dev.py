@@ -106,7 +106,13 @@ importances_LG_Prod.to_csv('importances_LG_ProductionYN.csv')
 plt.figure(1)
 plt.bar(x=importances_LG_Prod['Attribute'], height=importances_LG_Prod['Importance'], color='#087E8B')
 plt.title('Feature importances - LG - ProductionYN', size=20)
-plt.xticks(rotation='vertical')
+# plt.xticks(rotation='vertical')
+plt.tick_params(
+    axis='x',          # changes apply to the x-axis
+    which='both',      # both major and minor ticks are affected
+    bottom=False,      # ticks along the bottom edge are off
+    top=False,         # ticks along the top edge are off
+    labelbottom=False) # labels along the bottom edge are off
 plt.show()
 
 today = datetime.datetime.now()
@@ -146,7 +152,13 @@ importances_LG_Cat.to_csv('importances_LG_Category.csv')
 plt.figure(2)
 plt.bar(x=importances_LG_Cat['Attribute'], height=importances_LG_Cat['Importance'], color='#087E8B')
 plt.title('Feature importances - LG - Category', size=20)
-plt.xticks(rotation='vertical')
+# plt.xticks(rotation='vertical')
+plt.tick_params(
+    axis='x',          # changes apply to the x-axis
+    which='both',      # both major and minor ticks are affected
+    bottom=False,      # ticks along the bottom edge are off
+    top=False,         # ticks along the top edge are off
+    labelbottom=False) # labels along the bottom edge are off
 plt.show()
 
 today = datetime.datetime.now()
@@ -192,7 +204,13 @@ print(today)
 plt.figure(3)
 plt.bar(x=importances_XGB_Prod['Attribute'], height=importances_XGB_Prod['Importance'], color='#087E8B')
 plt.title('Feature importances - XGB - ProductionYN', size=20)
-plt.xticks(rotation='vertical')
+# plt.xticks(rotation='vertical')
+plt.tick_params(
+    axis='x',          # changes apply to the x-axis
+    which='both',      # both major and minor ticks are affected
+    bottom=False,      # ticks along the bottom edge are off
+    top=False,         # ticks along the top edge are off
+    labelbottom=False) # labels along the bottom edge are off
 plt.show()
 
 
@@ -235,7 +253,13 @@ print(today)
 plt.figure(4)
 plt.bar(x=importances_XGB_Cat['Attribute'], height=importances_XGB_Cat['Importance'], color='#087E8B')
 plt.title('Feature importances - XGB - Category', size=20)
-plt.xticks(rotation='vertical')
+# plt.xticks(rotation='vertical')
+plt.tick_params(
+    axis='x',          # changes apply to the x-axis
+    which='both',      # both major and minor ticks are affected
+    bottom=False,      # ticks along the bottom edge are off
+    top=False,         # ticks along the top edge are off
+    labelbottom=False) # labels along the bottom edge are off
 plt.show()
 today = datetime.datetime.now()
 print(today)
