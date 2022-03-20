@@ -232,7 +232,7 @@ importances_XGB_Cat.to_csv('importances_XGB_Category.csv')
 today = datetime.datetime.now()
 print(today)
 
-plt.figure(3)
+plt.figure(4)
 plt.bar(x=importances_XGB_Cat['Attribute'], height=importances_XGB_Cat['Importance'], color='#087E8B')
 plt.title('Feature importances - XGB - Category', size=20)
 plt.xticks(rotation='vertical')
