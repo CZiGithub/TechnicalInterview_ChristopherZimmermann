@@ -20,10 +20,12 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
 from sklearn.model_selection import cross_val_score, KFold
 from sklearn.linear_model import LogisticRegression
+from sklearn.linear_model import LogisticRegressionCV
 from xgboost import XGBClassifier
 from sklearn.neighbors import KNeighborsRegressor
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn import metrics
+# from sklearn.metrics import accuracy_score,recall_score,precision_score,f1_score
 # %matplotlib qt
 %matplotlib tk
 #get_ipython().run_line_magic('matplotlib', 'inline')
@@ -35,7 +37,7 @@ df = pd.read_csv('PackagingLineDataSet.csv', sep=',', encoding = 'latin1')
 today = datetime.datetime.now()
 print(today)
 # for development phase: use only a smaller chunk of the data
-df = df.iloc[::20, :]
+df = df.iloc[::200, :]
 
 ##############
 # Clean data #
@@ -73,6 +75,8 @@ str_dtypes = df.dtypes
 #   1.) ProductionYN
 #   2.) Category
 #
+
+
 ###########################################
 # Method 1 - first target: 'ProductionYN' #
 ###########################################
@@ -121,11 +125,27 @@ plt.show()
 today = datetime.datetime.now()
 print(today)
 
-#################
-# Test Accuracy #
-#################
-score = model_LG_Prod.score(X_test_scaled, y_test)
-print("LG - first target: 'ProductionYN' - Test Accuracy Score", score)
+########################
+# Validating the model #
+########################
+# make predictions
+y_pred=model_LG_Prod.predict(X_test_scaled)
+# Accuracy
+print("LG - first target: 'ProductionYN' - Accuracy:",metrics.accuracy_score(y_test, y_pred))
+# Recall
+print("LG - first target: 'ProductionYN' - Recall:",metrics.recall_score(y_test, y_pred))
+# Precision
+print("LG - first target: 'ProductionYN' - Precision:",metrics.precision_score(y_test, y_pred))
+# F1
+print("LG - first target: 'ProductionYN' - Recall:",metrics.f1_score(y_test, y_pred))
+
+# cross-validation score
+scores = cross_val_score(model_LG_Prod, X_train_scaled, y_train, cv=2)
+print("LG - first target: 'ProductionYN' - Mean cross-validation score: %.2f" % scores.mean())
+kfold = KFold(n_splits=2, shuffle=True)
+kf_cv_scores = cross_val_score(model_LG_Prod, X_train_scaled, y_train, cv=kfold )
+print("LG - first target: 'ProductionYN' - K-fold CV average score: %.2f" % kf_cv_scores.mean())
+
 
 
 ########################################
@@ -152,13 +172,22 @@ ss = StandardScaler()
 X_train_scaled = ss.fit_transform(X_train)
 X_test_scaled = ss.transform(X_test)
 
-model_LG_Cat = LogisticRegression(max_iter=2000)
+# another option would be one-versus-rest, if focus on "2 unplanned downtime" 
+model_LG_Cat = LogisticRegression(multi_class = 'multinomial', max_iter=2000)
 model_LG_Cat.fit(X_train_scaled, y_train)
-importances_LG_Cat = pd.DataFrame(data={'Attribute': X_train.columns, 'Importance': model_LG_Cat.coef_[0]})
+
+# make predictions
+y_pred=model_LG_Cat.predict(X_test_scaled)
+# importances_LG_Cat = pd.DataFrame(data={'Attribute': X_train.columns, 'Importance': model_LG_Cat.coef_[0]})
+# importances_LG_Cat = pd.DataFrame(data={'Attribute': X_train.columns, 'Importance': model_LG_Cat.coef_[1]})
+# importances_LG_Cat = pd.DataFrame(data={'Attribute': X_train.columns, 'Importance': model_LG_Cat.coef_[2]})
+# importances_LG_Cat = pd.DataFrame(data={'Attribute': X_train.columns, 'Importance': model_LG_Cat.coef_[3]})
+# importances_LG_Cat = pd.DataFrame(data={'Attribute': X_train.columns, 'Importance': model_LG_Cat.coef_[4]})
+importances_LG_Cat = pd.DataFrame(data={'Attribute': X_train.columns, 'Importance': model_LG_Cat.coef_[0]}) # "2 unplanned downtime"
 importances_LG_Cat = importances_LG_Cat.sort_values(by='Importance', ascending=False)
 
 # save importances
-importances_LG_Cat.to_csv('importances_LG_Category.csv')
+importances_LG_Cat.to_csv('importances_LG_Cat.csv')
 
 plt.figure(2)
 plt.bar(x=importances_LG_Cat['Attribute'], height=importances_LG_Cat['Importance'], color='#087E8B')
@@ -175,11 +204,26 @@ plt.show()
 today = datetime.datetime.now()
 print(today)
 
-#################
-# Test Accuracy #
-#################
-score = model_LG_Cat.score(X_test_scaled, y_test)
-print("LG - second target: 'Category' - Test Accuracy Score", score)
+########################
+# Validating the model #
+########################
+# make predictions
+y_pred=model_LG_Cat.predict(X_test_scaled)
+# Accuracy
+print("LG - second target: 'Category' - Accuracy:",metrics.accuracy_score(y_test, y_pred))
+# Recall
+print("LG - second target: 'Category' - Recall:",metrics.recall_score(y_test, y_pred,average = None))
+# Precision
+print("LG - second target: 'Category' - Precision:",metrics.precision_score(y_test, y_pred,average = None))
+# F1
+print("LG - second target: 'Category' - Recall:",metrics.f1_score(y_test, y_pred,average = None))
+
+# cross-validation score
+scores = cross_val_score(model_LG_Cat, X_train_scaled, y_train, cv=2)
+print("LG - second target: 'Category' - Mean cross-validation score: %.2f" % scores.mean())
+kfold = KFold(n_splits=2, shuffle=True)
+kf_cv_scores = cross_val_score(model_LG_Cat, X_train_scaled, y_train, cv=kfold )
+print("LG - second target: 'Category' - K-fold CV average score: %.2f" % kf_cv_scores.mean())
 
 ###########################################
 # Method 2 - first target: 'ProductionYN' #
@@ -230,14 +274,25 @@ plt.tick_params(
     labelbottom=False) # labels along the bottom edge are off
 plt.show()
 
-####################
-# Cross validation #
-####################
+########################
+# Validating the model #
+########################
+# make predictions
+y_pred=model_LG_Prod.predict(X_test_scaled)
+# Accuracy
+print("XGB - first target: 'ProductionYN' - Accuracy:",metrics.accuracy_score(y_test, y_pred))
+# Recall
+print("XGB - first target: 'ProductionYN' - Recall:",metrics.recall_score(y_test, y_pred))
+# Precision
+print("XGB - first target: 'ProductionYN' - Precision:",metrics.precision_score(y_test, y_pred))
+# F1
+print("XGB - first target: 'ProductionYN' - Recall:",metrics.f1_score(y_test, y_pred))
 
-scores = cross_val_score(model_XGB_Prod, X_train, y_train, cv=2)
+# cross-validation score
+scores = cross_val_score(model_XGB_Prod, X_train_scaled, y_train, cv=2)
 print("XGB - first target: 'ProductionYN' - Mean cross-validation score: %.2f" % scores.mean())
 kfold = KFold(n_splits=2, shuffle=True)
-kf_cv_scores = cross_val_score(model_XGB_Prod, X_train, y_train, cv=kfold )
+kf_cv_scores = cross_val_score(model_XGB_Prod, X_train_scaled, y_train, cv=kfold )
 print("XGB - first target: 'ProductionYN' - K-fold CV average score: %.2f" % kf_cv_scores.mean())
 
 ########################################
@@ -265,7 +320,7 @@ ss = StandardScaler()
 X_train_scaled = ss.fit_transform(X_train)
 X_test_scaled = ss.transform(X_test)
 
-model_XGB_Cat = XGBClassifier()
+model_XGB_Cat = XGBClassifier(objective='multi:softprob')
 model_XGB_Cat.fit(X_train_scaled, y_train)
 importances_XGB_Cat = pd.DataFrame(data={'Attribute': X_train.columns, 'Importance': model_XGB_Cat.feature_importances_})
 importances_XGB_Cat = importances_XGB_Cat.sort_values(by='Importance', ascending=False)
@@ -290,14 +345,25 @@ plt.show()
 today = datetime.datetime.now()
 print(today)
 
-####################
-# Cross validation #
-####################
+########################
+# Validating the model #
+########################
+# make predictions
+y_pred=model_XGB_Cat.predict(X_test_scaled)
+# Accuracy
+print("XGB - second target: 'Category' - Accuracy:",metrics.accuracy_score(y_test, y_pred))
+# Recall
+print("XGB - second target: 'Category' - Recall:",metrics.recall_score(y_test, y_pred,average = None))
+# Precision
+print("XGB - second target: 'Category' - Precision:",metrics.precision_score(y_test, y_pred,average = None))
+# F1
+print("XGB - second target: 'Category' - Recall:",metrics.f1_score(y_test, y_pred,average = None))
 
-scores = cross_val_score(model_XGB_Cat, X_train, y_train, cv=2)
+# cross-validation score
+scores = cross_val_score(model_XGB_Cat, X_train_scaled, y_train, cv=2)
 print("XGB - second target: 'Category' - Mean cross-validation score: %.2f" % scores.mean())
 kfold = KFold(n_splits=2, shuffle=True)
-kf_cv_scores = cross_val_score(model_XGB_Cat, X_train, y_train, cv=kfold )
+kf_cv_scores = cross_val_score(model_XGB_Cat, X_train_scaled, y_train, cv=kfold )
 print("XGB - second target: 'Category' - K-fold CV average score: %.2f" % kf_cv_scores.mean())
 
 
@@ -321,7 +387,8 @@ df_X1 = df_X1.drop('GRZ_L09_04_Cartoner_SX_V0456_01_RobotTool_VC_MZ_456_A_VacMon
 # now drop unimportant features #
 #################################
 # 
-unimportant_features = importances_XGB_Cat[abs(importances_XGB_Cat['Importance'].values) <= 0.025*max(abs(importances_XGB_Cat['Importance'].values))]
+# unimportant_features = importances_XGB_Cat[abs(importances_XGB_Cat['Importance'].values) <= 0.025*max(abs(importances_XGB_Cat['Importance'].values))]
+unimportant_features = importances_LG_Cat[abs(importances_XGB_Cat['Importance'].values) <= 0.025*max(abs(importances_XGB_Cat['Importance'].values))]
 df_X1 = df_X1.drop(unimportant_features.Attribute, axis=1)
 
 
@@ -341,28 +408,38 @@ X_test_scaled = ss.transform(X_test)
 model_KNN=KNeighborsClassifier(n_neighbors=7, metric='euclidean')
 model_KNN.fit(X_train_scaled,y_train)
 
+# make predictions
 y_pred=model_KNN.predict(X_test_scaled)
 
-#################
-# Test Accuracy #
-#################
-score = model_KNN.score(X_test_scaled, y_test)
-print("KNN - Test Accuracy Score", score)
+########################
+# Validating the model #
+########################
 
-# Model Accuracy, how often is the classifier correct?
-print("KNN - Accuracy:",metrics.accuracy_score(y_test, y_pred))
+# Accuracy
+print("KNNClassifier - second target: 'Category' - Accuracy:",model_KNN.score(X_test_scaled, y_test))
+# Accuracy
+print("KNNClassifier - second target: 'Category' - Accuracy:",metrics.accuracy_score(y_test, y_pred))
+# Recall
+print("KNNClassifier - second target: 'Category' - Recall:",metrics.recall_score(y_test, y_pred,average = None))
+# Precision
+print("KNNClassifier - second target: 'Category' - Precision:",metrics.precision_score(y_test, y_pred,average = None))
+# F1
+print("KNNClassifier - second target: 'Category' - F1:",metrics.f1_score(y_test, y_pred,average = None))
 
+# cross-validation score
 scores = cross_val_score(model_KNN, X_train_scaled, y_train, cv=2)
-print("KNN - Mean cross-validation score: %.2f" % scores.mean())
+print("KNNClassifier - second target: 'Category' - Mean cross-validation score: %.2f" % scores.mean())
 kfold = KFold(n_splits=2, shuffle=True)
 kf_cv_scores = cross_val_score(model_KNN, X_train_scaled, y_train, cv=kfold )
-print("KNN - K-fold CV average score: %.2f" % kf_cv_scores.mean())
+print("KNNClassifier - second target: 'Category' - K-fold CV average score: %.2f" % kf_cv_scores.mean())
+
 
 
 ####################
 # Predictive Model #
 ####################
 # KNeighborsRegressor
+# tbd...
 
 # prepare the datasets
 df_X1 = df.drop('ProductionYN', axis=1)
@@ -389,15 +466,15 @@ ss = StandardScaler()
 X_train_scaled = ss.fit_transform(X_train)
 X_test_scaled = ss.transform(X_test)
 
-model_KNN_cat=KNeighborsRegressor(n_neighbors=7, metric='euclidean')
-model_KNN_cat.fit(X_train_scaled,y_train)
+model_KNN_reg=KNeighborsRegressor(n_neighbors=7, metric='euclidean')
+model_KNN_reg.fit(X_train_scaled,y_train)
 
-y_pred=model_KNN_cat.predict(X_test_scaled)
+# make predictions
+y_pred=model_KNN_reg.predict(X_test_scaled)
 
-#################
-# Test Accuracy #
-#################
-score = model_KNN_cat.score(X_test_scaled, y_test)
-print("KNNRegressor - Test Accuracy Score", score)
-
+########################
+# Validating the model #
+########################
+# Accuracy
+print("KNNRegressor - continuous target: 'Blistering' - Accuracy:",model_KNN_reg.score(X_test_scaled, y_test))
 
