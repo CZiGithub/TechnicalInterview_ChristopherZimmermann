@@ -25,6 +25,7 @@ from xgboost import XGBClassifier
 from sklearn.neighbors import KNeighborsRegressor
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn import metrics
+from sklearn.metrics import confusion_matrix
 # from sklearn.metrics import accuracy_score,recall_score,precision_score,f1_score
 # %matplotlib qt
 %matplotlib tk
@@ -37,7 +38,7 @@ df = pd.read_csv('PackagingLineDataSet.csv', sep=',', encoding = 'latin1')
 today = datetime.datetime.now()
 print(today)
 # for development phase: use only a smaller chunk of the data
-df = df.iloc[::200, :]
+df = df.iloc[::20, :]
 
 ##############
 # Clean data #
@@ -75,8 +76,6 @@ str_dtypes = df.dtypes
 #   1.) ProductionYN
 #   2.) Category
 #
-
-
 ###########################################
 # Method 1 - first target: 'ProductionYN' #
 ###########################################
@@ -122,12 +121,19 @@ plt.tick_params(
     labelbottom=False) # labels along the bottom edge are off
 plt.show()
 
+# plt.tight_layout() 
+# manager = plt.get_current_fig_manager()
+# manager.full_screen_toggle()
+# plt.savefig('./Results/' + (get_tagdescription_clean) + ".png", dpi = 100)
+# plt.savefig('./Results/' + (get_tagdescription_clean) + ".pdf", dpi = 100)
+# plt.savefig('./Results/0_PL_LG_Prod_1.jpeg', dpi = 100)
+
 today = datetime.datetime.now()
 print(today)
 
-########################
-# Validating the model #
-########################
+#######################
+# Analyzing the model #
+#######################
 # make predictions
 y_pred=model_LG_Prod.predict(X_test_scaled)
 # Accuracy
@@ -146,7 +152,8 @@ kfold = KFold(n_splits=2, shuffle=True)
 kf_cv_scores = cross_val_score(model_LG_Prod, X_train_scaled, y_train, cv=kfold )
 print("LG - first target: 'ProductionYN' - K-fold CV average score: %.2f" % kf_cv_scores.mean())
 
-
+# confusion_matrix
+print(confusion_matrix(y_test, y_pred))
 
 ########################################
 # Method 1 - second target: 'Category' #
@@ -201,12 +208,19 @@ plt.tick_params(
     labelbottom=False) # labels along the bottom edge are off
 plt.show()
 
+# plt.tight_layout() 
+# manager = plt.get_current_fig_manager()
+# manager.full_screen_toggle()
+# plt.savefig('./Results/' + (get_tagdescription_clean) + ".png", dpi = 100)
+# plt.savefig('./Results/' + (get_tagdescription_clean) + ".pdf", dpi = 100)
+# plt.savefig('./Results/0_PL_LG_Cat_1.jpeg', dpi = 100)
+
 today = datetime.datetime.now()
 print(today)
 
-########################
-# Validating the model #
-########################
+#######################
+# Analyzing the model #
+#######################
 # make predictions
 y_pred=model_LG_Cat.predict(X_test_scaled)
 # Accuracy
@@ -224,6 +238,9 @@ print("LG - second target: 'Category' - Mean cross-validation score: %.2f" % sco
 kfold = KFold(n_splits=2, shuffle=True)
 kf_cv_scores = cross_val_score(model_LG_Cat, X_train_scaled, y_train, cv=kfold )
 print("LG - second target: 'Category' - K-fold CV average score: %.2f" % kf_cv_scores.mean())
+
+print(confusion_matrix(y_test, y_pred))
+
 
 ###########################################
 # Method 2 - first target: 'ProductionYN' #
@@ -274,9 +291,16 @@ plt.tick_params(
     labelbottom=False) # labels along the bottom edge are off
 plt.show()
 
-########################
-# Validating the model #
-########################
+# plt.tight_layout() 
+# manager = plt.get_current_fig_manager()
+# manager.full_screen_toggle()
+# plt.savefig('./Results/' + (get_tagdescription_clean) + ".png", dpi = 100)
+# plt.savefig('./Results/' + (get_tagdescription_clean) + ".pdf", dpi = 100)
+# plt.savefig('./Results/0_PL_XGB_Prod_1.jpeg', dpi = 100)
+
+#######################
+# Analyzing the model #
+#######################
 # make predictions
 y_pred=model_LG_Prod.predict(X_test_scaled)
 # Accuracy
@@ -294,6 +318,8 @@ print("XGB - first target: 'ProductionYN' - Mean cross-validation score: %.2f" %
 kfold = KFold(n_splits=2, shuffle=True)
 kf_cv_scores = cross_val_score(model_XGB_Prod, X_train_scaled, y_train, cv=kfold )
 print("XGB - first target: 'ProductionYN' - K-fold CV average score: %.2f" % kf_cv_scores.mean())
+
+print(confusion_matrix(y_test, y_pred))
 
 ########################################
 # Method 2 - second target: 'Category' #
@@ -320,7 +346,7 @@ ss = StandardScaler()
 X_train_scaled = ss.fit_transform(X_train)
 X_test_scaled = ss.transform(X_test)
 
-model_XGB_Cat = XGBClassifier(objective='multi:softprob')
+model_XGB_Cat = XGBClassifier(objective='multi:softprob') # multi-class
 model_XGB_Cat.fit(X_train_scaled, y_train)
 importances_XGB_Cat = pd.DataFrame(data={'Attribute': X_train.columns, 'Importance': model_XGB_Cat.feature_importances_})
 importances_XGB_Cat = importances_XGB_Cat.sort_values(by='Importance', ascending=False)
@@ -342,12 +368,20 @@ plt.tick_params(
     top=False,         # ticks along the top edge are off
     labelbottom=False) # labels along the bottom edge are off
 plt.show()
+
+# plt.tight_layout() 
+# manager = plt.get_current_fig_manager()
+# manager.full_screen_toggle()
+# plt.savefig('./Results/' + (get_tagdescription_clean) + ".png", dpi = 100)
+# plt.savefig('./Results/' + (get_tagdescription_clean) + ".pdf", dpi = 100)
+# plt.savefig('./Results/0_PL_XGB_Cat_1.jpeg', dpi = 100)
+
 today = datetime.datetime.now()
 print(today)
 
-########################
-# Validating the model #
-########################
+#######################
+# Analyzing the model #
+#######################
 # make predictions
 y_pred=model_XGB_Cat.predict(X_test_scaled)
 # Accuracy
@@ -366,12 +400,12 @@ kfold = KFold(n_splits=2, shuffle=True)
 kf_cv_scores = cross_val_score(model_XGB_Cat, X_train_scaled, y_train, cv=kfold )
 print("XGB - second target: 'Category' - K-fold CV average score: %.2f" % kf_cv_scores.mean())
 
+print(confusion_matrix(y_test, y_pred))
 
 ####################
 # Predictive Model #
 ####################
-# KNeighborsClassifier
-# tbd....
+# K-nearest neighbors Classifier
 
 # prepare the datasets
 df_X1 = df.drop('ProductionYN', axis=1)
@@ -386,16 +420,13 @@ df_X1 = df_X1.drop('GRZ_L09_04_Cartoner_SX_V0456_01_RobotTool_VC_MZ_456_A_VacMon
 #################################
 # now drop unimportant features #
 #################################
-# 
-# unimportant_features = importances_XGB_Cat[abs(importances_XGB_Cat['Importance'].values) <= 0.025*max(abs(importances_XGB_Cat['Importance'].values))]
-unimportant_features = importances_LG_Cat[abs(importances_XGB_Cat['Importance'].values) <= 0.025*max(abs(importances_XGB_Cat['Importance'].values))]
+unimportant_features = \
+    importances_XGB_Cat[abs(importances_XGB_Cat['Importance'].values) <= \
+                        0.025*max(abs(importances_XGB_Cat['Importance'].values))]
 df_X1 = df_X1.drop(unimportant_features.Attribute, axis=1)
 
-
-# define first target
+# define the target
 df_y1 = df['Category']
-# df_y1 = df['GRZ_L09_04_Cartoner_SX_V0456_01_RobotTool_IX_456_B5VacLow_V']
-# df_X1 = df_X1.drop('GRZ_L09_04_Cartoner_SX_V0456_01_RobotTool_IX_456_B5VacLow_V', axis=1)
 
 #Split the data into test and train
 X_train, X_test, y_train, y_test = train_test_split(df_X1, df_y1, test_size=0.25,random_state=4)
@@ -411,10 +442,9 @@ model_KNN.fit(X_train_scaled,y_train)
 # make predictions
 y_pred=model_KNN.predict(X_test_scaled)
 
-########################
-# Validating the model #
-########################
-
+#######################
+# Analyzing the model #
+#######################
 # Accuracy
 print("KNNClassifier - second target: 'Category' - Accuracy:",model_KNN.score(X_test_scaled, y_test))
 # Accuracy
@@ -425,56 +455,11 @@ print("KNNClassifier - second target: 'Category' - Recall:",metrics.recall_score
 print("KNNClassifier - second target: 'Category' - Precision:",metrics.precision_score(y_test, y_pred,average = None))
 # F1
 print("KNNClassifier - second target: 'Category' - F1:",metrics.f1_score(y_test, y_pred,average = None))
-
 # cross-validation score
 scores = cross_val_score(model_KNN, X_train_scaled, y_train, cv=2)
 print("KNNClassifier - second target: 'Category' - Mean cross-validation score: %.2f" % scores.mean())
 kfold = KFold(n_splits=2, shuffle=True)
 kf_cv_scores = cross_val_score(model_KNN, X_train_scaled, y_train, cv=kfold )
 print("KNNClassifier - second target: 'Category' - K-fold CV average score: %.2f" % kf_cv_scores.mean())
-
-
-
-####################
-# Predictive Model #
-####################
-# KNeighborsRegressor
-# tbd...
-
-# prepare the datasets
-df_X1 = df.drop('ProductionYN', axis=1)
-df_X1 = df_X1.drop('Date_Time', axis=1)
-df_X1 = df_X1.drop('Category', axis=1)
-df_X1 = df_X1.drop('Generated Date', axis=1)
-df_X1 = df_X1.drop('ActivityName', axis=1)
-df_X1 = df_X1.drop('GRZ_L09_05_Seidenader_Recipe_Recipe__1__V', axis=1)
-df_X1 = df_X1.drop('GRZ_L09_02_Filler_APP_V0931_00_BatchProtocol_VC_MZ_931_EEZ_S_BatchName_V', axis=1)
-df_X1 = df_X1.drop('GRZ_L09_04_Cartoner_SX_V0456_01_RobotTool_VC_MZ_456_A_VacControlLift_V', axis=1) # faulty dataset
-df_X1 = df_X1.drop('GRZ_L09_04_Cartoner_SX_V0456_01_RobotTool_VC_MZ_456_A_VacMonitor_V', axis=1) # faulty dataset
-
-
-# define first target
-# df_y1 = df['Category']
-df_y1 = df['GRZ_L09_01_Blistering_PLC_Modules__Default__Global_PV_tPeCupEdSW_fLatchDiffMm_V']
-df_X1 = df_X1.drop('GRZ_L09_01_Blistering_PLC_Modules__Default__Global_PV_tPeCupEdSW_fLatchDiffMm_V', axis=1)
-
-#Split the data into test and train
-X_train, X_test, y_train, y_test = train_test_split(df_X1, df_y1, test_size=0.25,random_state=4)
-
-# scale
-ss = StandardScaler()
-X_train_scaled = ss.fit_transform(X_train)
-X_test_scaled = ss.transform(X_test)
-
-model_KNN_reg=KNeighborsRegressor(n_neighbors=7, metric='euclidean')
-model_KNN_reg.fit(X_train_scaled,y_train)
-
-# make predictions
-y_pred=model_KNN_reg.predict(X_test_scaled)
-
-########################
-# Validating the model #
-########################
-# Accuracy
-print("KNNRegressor - continuous target: 'Blistering' - Accuracy:",model_KNN_reg.score(X_test_scaled, y_test))
-
+# plot confusion matrix
+print(confusion_matrix(y_test, y_pred))
