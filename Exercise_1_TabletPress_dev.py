@@ -9,11 +9,12 @@
 #########################
 # Configuration section #
 #########################
-# flag for performing initial clean-up of raw data (flag_cu = 1: clean-up; flag_cu = 0 load already cleansed dataset)
-flag_cu = 0
+# flag for performing initial clean-up of raw data (flag_cu = 1: clean-up; 
+#   flag_cu = 0 load already cleansed dataset)
+flag_cu = 1
 # plot entire series of datasets (flag_pl_series = 1: perform)
-flag_pl_series = 1 # be careful, many plots will be created
-# for single plot analysis: enter sensorname
+flag_pl_series = 0 # be careful, many plots will be created
+# for single plot analysis: enter tagname
 sensor_analysis = 'dpMeasuredValueStation1p001'
 
 ###################
@@ -35,7 +36,8 @@ if flag_cu == 1:
     # import dataset as pandas dataframe
     df = pd.read_csv('raw_data_tablet_press.csv', sep=',')
     # give columns meaningful names
-    df = df.rename(columns={'Unnamed: 0': 'id', 'Unnamed: 10': 'time_stamp', 'time': 'variant_type', 'type': 'true_value'})
+    df = df.rename(columns={'Unnamed: 0': 'id', 'Unnamed: 10': 'time_stamp',\
+                            'time': 'variant_type', 'type': 'true_value'})
     # format datatypes (time stamp)
     df_nan = df[df['variant_type'].isnull() == True]
     # repair dataset
@@ -45,47 +47,48 @@ if flag_cu == 1:
         temp_str_split_1 = temp_str.split(',"')
         temp_str_split_2 = temp_str_split_1[1].split('",')
         temp_str_split_3 = temp_str_split_2[1].split(',')
-        
         # insert correct values in dataframe
         df.loc[repair_line,'value'] = temp_str_split_1[0]
         df.loc[repair_line,'true_value'] = temp_str_split_2[0]
         df.loc[repair_line,'variant_type'] = temp_str_split_3[0]
         df.loc[repair_line,'time_stamp'] = temp_str_split_3[1]
+    df = df.set_index('id')
     # store cleansed dataset
     df.to_csv('raw_data_tablet_press_cleaned.csv')
 elif flag_cu == 0:
     df = pd.read_csv('raw_data_tablet_press_cleaned.csv', sep=',')
-
 # convert time stamp
-df['time_stamp'] = pd.to_datetime((df['time_stamp']), format="%Y-%m-%dT%H:%M:%S.%fZ")
+df['time_stamp'] = pd.to_datetime((df['time_stamp']),\
+                                  format="%Y-%m-%dT%H:%M:%S.%fZ")
 # sort data by time stamp
 df = df.sort_values(by='time_stamp', ascending=True)
-# Delete datasets, which have value type of VariantType.Null and and store in separate frame
+# drop all rows with "nan"
+df = df.dropna()  
+# Delete datasets, which have value type of VariantType.Null and store 
+#   in separate dataframe
 df_null = df[df['variant_type'].str.contains('VariantType.Null') == True]
 df = df[df['variant_type'].str.contains('VariantType.Null') == False]
 # Transform datatypes labeled with "double" and "int16" to float
-df[df['variant_type'].str.contains('VariantType.Double') == True] = df[df['variant_type'].str.contains('VariantType.Double') == True].astype({'true_value': float})
-df[df['variant_type'].str.contains('VariantType.Int16') == True] = df[df['variant_type'].str.contains('VariantType.Int16') == True].astype({'true_value': float})
+df[df['variant_type'].str.contains('VariantType.Double') == True] = \
+    df[df['variant_type'].str.contains('VariantType.Double') == \
+       True].astype({'true_value': float})
+df[df['variant_type'].str.contains('VariantType.Int16') == True] = \
+    df[df['variant_type'].str.contains('VariantType.Int16') == \
+       True].astype({'true_value': float})
 
-# reduce dataset (every nth row) for development phase
-# df = df.iloc[::10, :]
-# use smaller dataset for development
-# df = pd.read_csv('raw_data_tablet_press_short.csv')
-#print(df)
-# import tags corresponding to dataset as pandas dataframe
-df_TT = pd.read_csv('TT_Table_csv.csv', sep=',')
-
-# print some useful information about the dataset
+# print some useful information about the dataframe
 print(df.shape)
 print(df.head(10))
 print(df.dtypes)
 print(df.nunique())
 print(df.isna().sum())
 
-# store existing data types for further investigation
-str_dtypes = df.dtypes
-
-# create a dictionary with each specific dataset separated
+############################################################################
+# import tags corresponding to dataset as pandas dataframe (Note: The data #
+#    containing the TT_Table needs to be stored manually)                  #
+############################################################################
+df_TT = pd.read_csv('TT_Table_csv.csv', sep=',')
+# create a dictionary with each specific tag/dataset separated
 df_dict = {}
 # df_TT_dict = {}
 for state in df['sapparametername'].unique():
@@ -96,6 +99,15 @@ list_df_dict = list(df_dict)
 ####################
 # Plotting section # 
 ####################
+# Batch name (unique)
+df_dict['dpDataStringBatch'] = df_dict['dpDataStringBatch'].dropna()  
+
+df_dict['dpDataStringBatch'] = \
+    df_dict['dpDataStringBatch'].drop_duplicates(subset=['true_value'])
+df_dict['dpDiagnoseDiagnosisText'] = \
+    df_dict['dpDiagnoseDiagnosisText'].drop_duplicates(subset=['time_stamp'])
+df_dict['dpMachineStatusS88StatusName'] = \
+    df_dict['dpMachineStatusS88StatusName'].drop_duplicates(subset=['time_stamp'])
 
 ########################################################
 # Visualize all individual datasets for first analysis # 
@@ -108,19 +120,24 @@ list_df_dict_measured = list_df_dict_sorted[13:46]
 list_df_dict_set = list_df_dict_sorted[47:99]
 # list containing all data that have at least one nonzero value
 list_df_dict_nonzero = list_df_dict_sorted[0:29] + list_df_dict_sorted[38:41] \
-    + list_df_dict_sorted[43:47] + list_df_dict_sorted[48:63] + list_df_dict_sorted[69:79] \
-        + list_df_dict_sorted[80:83] + list_df_dict_sorted[85:88]
+    + list_df_dict_sorted[43:47] + list_df_dict_sorted[48:63] + \
+        list_df_dict_sorted[69:79] + list_df_dict_sorted[80:83] + \
+            list_df_dict_sorted[85:88]
 
 # list that will be iteratively plotted
 list_df_dict_plot = list_df_dict_nonzero
 # list_df_dict_plot = list_df_dict_nonzero[0:10]
-list_df_dict_plot = list_df_dict_sorted
+# list_df_dict_plot = list_df_dict_sorted
 
+#######################################################
+# Automized plotting of each dataset in single figure #
+#######################################################
 if flag_pl_series == 1:
     for sens_id in list_df_dict_plot:
         # print(sens_id)
         # plot only if datatype is double or int
-        if df_dict[sens_id].variant_type.values[0] == 'VariantType.Double' or df_dict[sens_id].variant_type.values[0] == 'VariantType.Int16':
+        if df_dict[sens_id].variant_type.values[0] == 'VariantType.Double'\
+            or df_dict[sens_id].variant_type.values[0] == 'VariantType.Int16':
             # extract tagdescription and unit specification of datasets
             get_tagdescription = df_TT[df_TT['sapparametername'].str.contains(sens_id) == True].tagdescription.values[0]
             get_param_unit = df_TT[df_TT['sapparametername'].str.contains(sens_id) == True].tagdescription.values[0]
@@ -129,20 +146,38 @@ if flag_pl_series == 1:
             # extract data for plotting
             x = df_dict[sens_id].time_stamp.values
             y = df_dict[sens_id].true_value.values.astype(float)
-            
-            # x = df_dict[sens_id].time_stamp.values
-            # y = df_dict[sens_id].true_value.values.astype(float)
-            
+                        
             plt.figure(sens_id)
             
-            plt.plot(x,y, '.', markersize = 10, color='#087E8B', label = (get_tagdescription))
-            # plt.plot(x,y, 10, markersize = 10, color='orange', label = (get_tagdescription))
-            # plt.bar(x, y, width=0.025, label='X', color='#087E8B')
+            plt.plot(x,y, '.', markersize = 15, color='#087E8B', label = (get_tagdescription))
+            # plt.plot(x,y, '.', markersize = 15, color='#087E8B')
+            # plot Batch name:
+            # plt.plot()
+            x2 = df_dict['dpDataStringBatch'].time_stamp.values
+            y2 = df_dict['dpDataStringBatch'].usecaseid.values
+            
+            x3 = df_dict['dpMachineStatusS88StatusName'].time_stamp.values
+            y3 = df_dict['dpMachineStatusS88StatusName'].true_value.values
+            # y2 = df_dict['dpDataStringBatch'].usecaseid.values
+            # x2 = x2.values
+            # plt.plot(x2,y2, 'r*', markersize = 15)
+            flg1 = 0
+            for idts in x2:
+                if flg1 == 0:
+                    plt.axvline(idts, color='red', linestyle='--', lw=2.5, label = 'New Batch')
+                    # plt.annotate('new batch', xy=(idts,max(y)))
+                    flg1 = 1
+                else:
+                    plt.axvline(idts, color='red', linestyle='--', lw=2.5)
+            
+                
+            # plt.axvline(x2, color='red', linestyle='--')
             plt.title(sens_id, size=20)
-            plt.xticks(rotation=45)
+            plt.xticks(rotation=45, fontsize = 16)
+            plt.xlabel('Time', fontsize=20)
             # plt.ylim(0,105)
-            plt.ylabel(get_tagdescription + ' [' + get_param_unit + ']')
-            # plt.yticks((0,100))
+            plt.ylabel(get_tagdescription + ' [' + get_param_unit + ']', fontsize=20)
+            plt.yticks(fontsize = 16)
             # plt.legend()
             plt.grid(True)
             # ax1.set_xticklabels(x[::2], rotation = 45)
@@ -152,91 +187,99 @@ if flag_pl_series == 1:
             # par1y.set_ylabel('Idle/Complete - Running - Held - Paused')
             # # par1y.legend()
             # par1y.grid(True)
-            plt.show()
+            plt.show()          
+            # plt.tight_layout() 
+            # manager = plt.get_current_fig_manager()
+            # manager.full_screen_toggle()
+            sens_id_clean = sens_id.replace('/','_')
+            # plt.savefig('./Results/' + (get_tagdescription_clean) + ".png", dpi = 100)
+            # plt.savefig('./Results/' + (get_tagdescription_clean) + ".pdf", dpi = 100)
+            # plt.savefig('./Results/' + (sens_id_clean) + ".jpeg", dpi = 100)
+            # plt.close("all")
+            
 
 # plt.close("all")
-###################################
-# Plot with pandas dataframe.plot #
-###################################
-# df_dict[sensor_analysis].plot(x ='time_stamp', y='true_value', kind = 'scatter')
-# # df_dict[sensor_analysis].plot(x ='time_stamp', y='true_value', kind = 'scatter')
-# plt.show()
 
-# extract data for individual plotting
-x = df_dict[sensor_analysis].time_stamp.values
-y = df_dict[sensor_analysis].true_value.values.astype(float)
+###########################
+# plot individual figures # 
+###########################
 
-x2 = df_dict['dpMachineStatusS88StatusValue'].time_stamp.values
-y2 = df_dict['dpMachineStatusS88StatusValue'].true_value.values.astype(float)
+sensor_analysis = 'dpMeasuredValueStation1p014'
+sensor_analysis2 = 'dpMeasuredValueStation1p015'
 
-# extract tagdescription and unit specification of datasets
-get_tagdescription = df_TT[df_TT['sapparametername'].str.contains(sensor_analysis) == True].tagdescription.values[0]
-get_param_unit = df_TT[df_TT['sapparametername'].str.contains(sensor_analysis) == True].tagdescription.values[0]
-get_param_unit = df_TT[df_TT['sapparametername'].str.contains(sensor_analysis) == True]
+sens_id = sensor_analysis
+sens_id2 = sensor_analysis2
+get_tagdescription = df_TT[df_TT['sapparametername'].str.contains(sens_id) == True].tagdescription.values[0]
+get_param_unit = df_TT[df_TT['sapparametername'].str.contains(sens_id) == True].tagdescription.values[0]
+get_param_unit = df_TT[df_TT['sapparametername'].str.contains(sens_id) == True]
 get_param_unit = get_param_unit['[EN] Parameter Unit'].values[0]
 
-############
-# Figure 1 #
-############
-plt.figure(2)
-plt.plot(x,y, lw=3, color='#087E8B', label = (get_tagdescription))
-# plt.bar(x, y, width=0.025, label='X', color='#087E8B')
-plt.title(sensor_analysis, size=20)
-plt.xticks(rotation=45)
+get_tagdescription2 = df_TT[df_TT['sapparametername'].str.contains(sens_id2) == True].tagdescription.values[0]
+get_param_unit2 = df_TT[df_TT['sapparametername'].str.contains(sens_id2) == True].tagdescription.values[0]
+get_param_unit2 = df_TT[df_TT['sapparametername'].str.contains(sens_id2) == True]
+get_param_unit2 = get_param_unit2['[EN] Parameter Unit'].values[0]
+# extract data for plotting
+x = df_dict[sens_id].time_stamp.values
+y = df_dict[sens_id].true_value.values.astype(float)
+
+xB = df_dict[sens_id2].time_stamp.values
+yB = df_dict[sens_id2].true_value.values.astype(float)
+
+plt.figure(sens_id)
+
+plt.plot(x,y, '.', markersize = 15, color='#087E8B', label = (get_tagdescription))
+# plt.plot(x,y, '.', markersize = 15, color='#087E8B')
+# plot Batch name:
+# plt.plot()
+x2 = df_dict['dpDataStringBatch'].time_stamp.values
+y2 = df_dict['dpDataStringBatch'].usecaseid.values
+
+x3 = df_dict['dpMachineStatusS88StatusName'].time_stamp.values
+y3 = df_dict['dpMachineStatusS88StatusName'].true_value.values
+# y2 = df_dict['dpDataStringBatch'].usecaseid.values
+# x2 = x2.values
+# plt.plot(x2,y2, 'r*', markersize = 15)
+flg1 = 0
+for idts in x2:
+    if flg1 == 0:
+        plt.axvline(idts, color='red', linestyle='--', lw=2.5, label = 'New Batch')
+        # plt.annotate('new batch', xy=(idts,max(y)))
+        flg1 = 1
+    else:
+        plt.axvline(idts, color='red', linestyle='--', lw=2.5)
+
+flg1 = 0
+id_it = 0
+for idts in x3:
+    # if y3[id_it] == 'Held'
+    # plt.annotate(y3[id_it], xy=(idts,max(y)))
+    id_it +=1
+    
+    #     plt.axvline(idts, linestyle='--', lw=2.5)
+# plt.axvline(x2, color='red', linestyle='--')
+plt.title(sens_id, size=20)
+plt.xticks(rotation=45, fontsize = 16)
+plt.xlabel('Time', fontsize=20)
 # plt.ylim(0,105)
-plt.ylabel(get_tagdescription + ' [' + get_param_unit + ']')
-# plt.yticks((0,100))
-plt.legend()
+plt.ylabel(get_tagdescription + ' [' + get_param_unit + ']', fontsize=20)
+plt.yticks(fontsize = 16)
+# plt.legend()
 plt.grid(True)
 # ax1.set_xticklabels(x[::2], rotation = 45)
 
-par1y = plt.twinx()
-par1y.plot(x2, y2, 'k*', markersize = 10, label='S88')
-par1y.set_ylabel('Idle/Complete - Running - Held - Paused')
-# par1y.legend()
-par1y.grid(True)
-# par1y.set_ylim(0,4)
-plt.show()
+# par1y = plt.twinx()
+# par1y.plot(xB, yB, '*', color = 'darkblue', markersize = 3, label='S88')
+# par1y.set_ylabel(get_tagdescription2 + ' [' + get_param_unit2 + ']', fontsize=20)
+# # par1y.set_yticks(size = 16)
+# # # par1y.legend()
+# par1y.grid(True)
+plt.show()          
+plt.tight_layout() 
+# manager = plt.get_current_fig_manager()
+# manager.full_screen_toggle()
+sens_id_clean = sens_id.replace('/','_')
+# plt.savefig('./Results/' + (get_tagdescription_clean) + ".png", dpi = 100)
+# plt.savefig('./Results/' + (get_tagdescription_clean) + ".pdf", dpi = 100)
+# plt.savefig('./Results/' + (sens_id_clean) + "_2z1.jpeg", dpi = 100)
 
-
-############
-# Figure 2 #
-############
-plt.figure(3)
-#plt.bar(x=df_dpMeasuredValueStation1p001['time_stamp'], height=df_dpMeasuredValueStation1p001['true_value'], color='#087E8B')
-# plt.plot(x,y, lw=3, color='#087E8B')
-plt.bar(x, y, width=0.025, color='#087E8B', label = (get_tagdescription))
-plt.title(sensor_analysis, size=20)
-plt.xticks(rotation=45)
-# plt.ylim(0,175)
-plt.ylabel(get_tagdescription + ' [' + get_param_unit + ']')
-plt.legend()
-plt.grid(True)
-# ax1.set_xticklabels(x[::2], rotation = 45)
-
-par1y = plt.twinx()
-par1y.plot(x2, y2, 'k*', markersize = 10, label='S88')
-par1y.set_ylabel('Idle/Complete - Running - Held - Paused')
-# par1y.legend()
-par1y.grid(True)
-plt.show()
-
-############
-# Figure 3 #
-############
-plt.figure(4)
-plt.plot(x, y, '+', markersize = 10, color='#087E8B', label = (get_tagdescription))
-plt.title(sensor_analysis, size=20)
-plt.xticks(rotation=45)
-# plt.ylim(0,175)
-plt.ylabel(get_tagdescription + ' [' + get_param_unit + ']')
-plt.legend()
-plt.grid(True)
-# ax1.set_xticklabels(x[::2], rotation = 45)
-
-par1y = plt.twinx()
-par1y.plot(x2, y2, 'k*', markersize = 10, label='S88')
-par1y.set_ylabel('Idle/Complete - Running - Held - Paused')
-# par1y.legend()
-par1y.grid(True)
-plt.show()
+# plt.close("all")
